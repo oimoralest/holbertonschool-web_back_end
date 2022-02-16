@@ -1,1 +1,1 @@
-﻿# Basic authentication to an API with Flask
+## 0x06. Basic authentication
