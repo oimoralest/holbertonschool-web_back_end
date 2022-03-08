@@ -59,4 +59,28 @@ class TestGithubOrgClient(unittest.TestCase):
         ret = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(ret, expected)
 
-    
+    @patch.object(GithubOrgClient, 'org')
+    def test_public_repos(self, mock_org):
+        """ now  check or test public repos
+        Args:
+            mock_org ([type]): [description]
+        """
+        payload = {
+            'obj': {
+                'name': 'Oscar',
+                'last_name': 'Morales',
+                'profile': 'developer',
+                'edad': 101
+            },
+            'url_pattern': 'repos_url',
+        }
+        mock_org.return_value = payload
+        create_instance = GithubOrgClient('org')
+        value = create_instance.org
+
+        with patch(f'{__name__}.GithubOrgClient._public_repos_url',
+                   new_callable=PropertyMock) as mock_repos_url:
+            mock_repos_url.return_value = value()['url_pattern']
+            self.assertEqual(mock_repos_url(), 'repos_url')
+            mock_repos_url.assert_called_once()
+            mock_org.assert_called_once()
