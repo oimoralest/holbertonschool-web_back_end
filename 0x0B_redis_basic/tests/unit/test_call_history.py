@@ -1,4 +1,6 @@
+from exercise import Cache
 import pytest
+from typing import List
 
 
 @pytest.mark.parametrize(
@@ -9,12 +11,20 @@ import pytest
         ("Third", [b"('Third',)"])
     ]
 )
-def test_call_history(data, expected, f__cache):
-    cache = f__cache
+def test_call_history(
+    data: str,
+    expected: List[bytes],
+    f__cache: pytest.fixture
+):
+    cache: Cache = f__cache
 
-    key = cache.store(data)
-    inputs = cache._redis.lrange(f"{cache.store.__qualname__}:inputs", 0, -1)
-    outputs = cache._redis.lrange(f"{cache.store.__qualname__}:outputs", 0, -1)
+    key: str = cache.store(data)
+    inputs: List[bytes] = cache._redis.lrange(
+        f"{cache.store.__qualname__}:inputs", 0, -1
+    )
+    outputs: List[bytes] = cache._redis.lrange(
+        f"{cache.store.__qualname__}:outputs", 0, -1
+    )
 
     assert inputs == expected
     assert outputs == [key.encode("utf-8")]

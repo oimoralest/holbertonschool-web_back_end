@@ -1,18 +1,27 @@
 #!/usr/bin/end python3
 """Creates a cache class which connects with Redis"""
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 import redis
 from uuid import uuid4
 
 
 def call_history(method: Callable) -> Callable:
+    """Creates a decorator that tracks the history for a given method
+
+    Arguments:
+        - method: Callable method of class
+
+    Return:
+        - wrapper: Function applicable as decorator
+    """
 
     inputs: str = method.__qualname__ + ":inputs"
     outputs: str = method.__qualname__ + ":outputs"
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
+        """ Wrapper for method"""
         self._redis.rpush(inputs, str(args))
         output = method(self, *args, **kwargs)
         self._redis.rpush(outputs, str(output))
@@ -23,7 +32,7 @@ def call_history(method: Callable) -> Callable:
 
 
 def count_calls(method: Callable) -> Callable:
-    """Creates a decorator that count how many time a method has been called
+    """Creates a decorator that counts how many time a method has been called
 
     Arguments:
         - method: Callable method of a class
@@ -113,3 +122,28 @@ class Cache(object):
         self._redis.set(name=key, value=data)
 
         return key
+
+
+def replay(method: Callable) -> None:
+    """Print how many times a class method was called and its historial
+
+    Arguments:
+        - method: class method
+
+    Return:
+        None
+    """
+    qualname: str = method.__qualname__
+    inputs_key: str = qualname + ":inputs"
+    outputs_key: str = qualname + ":outputs"
+
+    cache: Cache = method.__self__
+
+    count: str = cache._redis.get(qualname).decode("utf-8")
+    inputs: List[bytes] = cache._redis.lrange(inputs_key, 0, -1)
+    outputs: List[bytes] = cache._redis.lrange(outputs_key, 0, -1)
+
+    print(f"{qualname} was called {count} times:")
+
+    for key, value in zip(inputs, outputs):
+        print(f"{qualname}(*{key.decode('utf-8')}) -> {value.decode('utf-8')}")
