@@ -1,8 +1,29 @@
 #!/usr/bin/end python3
 """Creates a cache class which connects with Redis"""
-from typing import Callable, Optional, Union
+from functools import wraps
+from typing import Any, Callable, Optional, Union
 import redis
 from uuid import uuid4
+
+
+def count_calls(method: Callable) -> Callable:
+    """Creates a decorator that count how many time a method has been called
+
+    Arguments:
+        - method: Callable method of a class
+
+    Return:
+        - wrapper: Function applicable as decorator
+    """
+    key: str = method.__qualname__
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs) -> Any:
+        """ Wrapper for method """
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class Cache(object):
@@ -61,6 +82,7 @@ class Cache(object):
         data = self._redis.get(key)
         return data.decode()
 
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """Stores data inside Redis
 
