@@ -6,6 +6,22 @@ import redis
 from uuid import uuid4
 
 
+def call_history(method: Callable) -> Callable:
+
+    inputs: str = method.__qualname__ + ":inputs"
+    outputs: str = method.__qualname__ + ":outputs"
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        self._redis.rpush(inputs, str(args))
+        output = method(self, *args, **kwargs)
+        self._redis.rpush(outputs, str(output))
+
+        return output
+
+    return wrapper
+
+
 def count_calls(method: Callable) -> Callable:
     """Creates a decorator that count how many time a method has been called
 
@@ -82,6 +98,7 @@ class Cache(object):
         data = self._redis.get(key)
         return data.decode()
 
+    @call_history
     @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """Stores data inside Redis
